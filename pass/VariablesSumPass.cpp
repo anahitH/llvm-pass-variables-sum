@@ -4,12 +4,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
-#include "llvm/IR/InstrTypes.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/IR/Module.h"
-
-#include <memory>
-#include <cassert>
 
 namespace {
 using namespace llvm;
@@ -24,25 +19,26 @@ public:
 		{
 		}
 
+public:
 		virtual bool runOnFunction(Function& F)
 		{
-				bool modified = false;
-				int sum = 0;
 				LLVMContext& context = F.getContext();
 				IRBuilder<> builder(context);
+				const auto& int32T = Type::getInt32Ty(context);
 
 				// allocating sum and storeing initial value
-				Instruction* sumallocInstr = builder.CreateAlloca(Type::getInt32Ty(context), 0, "sum");
-				Instruction* sumstoreInstr = builder.CreateStore(
-												ConstantInt::get(Type::getInt32Ty(context), sum),
-												sumallocInstr);
+				Instruction* sumallocInstr = builder.CreateAlloca(int32T, 0, "sum");
+				Instruction* sumstoreInstr = builder.CreateStore(ConstantInt::get(int32T, 0),
+																												 sumallocInstr);
 
 				auto& instructionList = F.getEntryBlock().getInstList();
 				instructionList.push_front(sumallocInstr);
 				instructionList.insertAfter(instructionList.begin(), sumstoreInstr);
 
-				Constant* printFunc = F.getParent()->getOrInsertFunction(
-										"print", Type::getVoidTy(context), Type::getInt32Ty(context), nullptr);
+				Constant* printFunc = F.getParent()->getOrInsertFunction("print",
+																																 Type::getVoidTy(context),
+																																 int32T,
+																																 nullptr);
 
 				for (auto& block : F) {
 						for (auto& instr : block) {
@@ -54,36 +50,28 @@ public:
 										Instruction* loadInstr = builder.CreateLoad(sumallocInstr);
 										loadInstr->insertAfter(op);
 
-										Value* right_op = op->getOperand(0);
-										Value* add = builder.CreateAdd(loadInstr, right_op);
+										Value* add = builder.CreateAdd(loadInstr, op->getOperand(0));
 										auto* add_instr = dyn_cast<Instruction>(add);
 										add_instr->insertAfter(loadInstr);
 
 										sumstoreInstr = builder.CreateStore(add_instr, sumallocInstr);
 										sumstoreInstr->insertAfter(add_instr);
-
-										modified = true;
-
 								}
 						}
 				}
 
 				Instruction* loadInstr = builder.CreateLoad(sumallocInstr);
 				auto& instructions = F.getBasicBlockList().back().getInstList();
-
 				const auto& returnInstr = instructions.remove(instructions.back());
-
 				instructions.push_back(loadInstr);
-				Value* args[] = {loadInstr};
 
-				//builder.SetInsertPoint(&F.getBasicBlockList().back(), ++builder.GetInsertPoint());
+				Value* args[] = {loadInstr};
 				CallInst* callInst = builder.CreateCall(printFunc, args);
 				instructions.push_back(callInst);
 				instructions.push_back(returnInstr);
 
-				return modified;
+				return true;
 		}
-
 };
 
 char FunctionVariableSumPass::ID = 0;
@@ -96,7 +84,5 @@ static void registerFunctionVariableSumPass(const llvm::PassManagerBuilder &,
 static llvm::RegisterStandardPasses
   RegisterMyPass(llvm::PassManagerBuilder::EP_EarlyAsPossible,
                  registerFunctionVariableSumPass);
-
-
 }
 
