@@ -1,5 +1,0 @@
-/home/anahitik/LLVM/llvm-pass-variables-sum/build/CMakeFiles/edit_cache.dir
-/home/anahitik/LLVM/llvm-pass-variables-sum/build/CMakeFiles/rebuild_cache.dir
-/home/anahitik/LLVM/llvm-pass-variables-sum/build/pass/CMakeFiles/edit_cache.dir
-/home/anahitik/LLVM/llvm-pass-variables-sum/build/pass/CMakeFiles/rebuild_cache.dir
-/home/anahitik/LLVM/llvm-pass-variables-sum/build/pass/CMakeFiles/VariablesSumPass.dir
